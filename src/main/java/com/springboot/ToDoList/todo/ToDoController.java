@@ -1,7 +1,8 @@
 package com.springboot.ToDoList.todo;
 
 import jakarta.validation.Valid;
-import org.springframework.stereotype.Controller;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.ui.ModelMap;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,7 +13,7 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import java.time.LocalDate;
 import java.util.List;
 
-@Controller
+//@Controller
 @SessionAttributes("name")
 public class ToDoController {
 
@@ -24,17 +25,24 @@ public class ToDoController {
 
     @RequestMapping("list-todos")
     public String listAllTodos(ModelMap modelMap){
-       List<Todo> todos = toDoService.findByUsername("veekesh2408");
-       modelMap.addAttribute("todos",todos);
+        String username = getLoggedInUserName(modelMap);
+        List<Todo> todos = toDoService.findByUsername(username);
+        modelMap.addAttribute("todos",todos);
         return "listTodos";
     }
 
     @RequestMapping(value = "add-todos", method = RequestMethod.GET)
     public String showNewTodoPage(ModelMap modelMap){
-        String username = (String)modelMap.get("name");
+        String username = getLoggedInUserName(modelMap);
         Todo todo = new Todo(0,username," ",LocalDate.now().plusYears(1),false);
         modelMap.put("todo",todo);
         return "todo";
+    }
+
+    private String getLoggedInUserName(ModelMap modelMap){
+        //We are getting username from Spring security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication.getName();
     }
 
     @RequestMapping(value = "add-todos", method = RequestMethod.POST)
@@ -43,7 +51,7 @@ public class ToDoController {
         if (result.hasErrors()){
             return "todo";
         }
-        String username=((String) modelMap.get("name"));
+        String username= getLoggedInUserName(modelMap);
         toDoService.addTodo(username,todo.getDescription(), todo.getTargetDate(),false);
         return "redirect:list-todos";
     }
@@ -68,7 +76,7 @@ public class ToDoController {
             return "todo";
         }
 
-        String username = (String)modelMap.get("name");
+        String username = getLoggedInUserName(modelMap);
         todo.setUsername(username);
         toDoService.updateTodo(todo);
         return "redirect:list-todos";
